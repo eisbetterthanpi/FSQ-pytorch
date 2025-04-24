@@ -18,29 +18,26 @@ class FSQ(nn.Module):
     def forward(self, z, beta=1): # beta in (0,1). beta->0 => values more spread out
         offset = (self.levels+1) % 2 /2 # .5 if even, 0 if odd
         bound = (F.sigmoid(z)-1/2) * (self.levels-beta) + offset
-        # print('fwd', bound) # 
         quantized = ste_round(bound)
-        # print('fwd', quantized) # 4: -1012
         return (quantized-offset) / self.half_width # split [-1,1]
 
     def codes_to_indexes(self, zhat):
         zhat = (zhat + 1) * self.half_width
-        return (zhat * self.basis).sum(axis=-1)#.int()
+        return (zhat * self.basis).sum(axis=-1).round()
 
     def indexes_to_codes(self, indices):
         indices = indices.unsqueeze(-1)
         codes = torch.remainder(indices//self.basis, self.levels)
-        # print("codes",codes)
         return codes / self.half_width - 1
 
-fsq = FSQ(levels = [5,4,3,2])
-# print(fsq.codebook)
-batch_size, seq_len = 2, 4
-# x = torch.rand((batch_size, seq_len,3),device=device)
-x = torch.linspace(-2,2,7).repeat(4,1).T
-la = fsq(x)
-print(la)
-lact = fsq.codes_to_indexes(la)
-print(lact)
-# la = fsq.indexes_to_codes(lact)
+# fsq = FSQ(levels = [5,4,3,2])
+# # print(fsq.codebook)
+# batch_size, seq_len = 2, 4
+# # x = torch.rand((batch_size, seq_len,3),device=device)
+# x = torch.linspace(-2,2,7).repeat(4,1).T
+# la = fsq(x)
+# print(la)
+# lact = fsq.codes_to_indexes(la)
+# print(lact)
+# # la = fsq.indexes_to_codes(lact)
 # print(la)
