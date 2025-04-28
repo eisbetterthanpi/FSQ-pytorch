@@ -15,29 +15,31 @@ class FSQ(nn.Module):
         self.codebook_size = torch.prod(self.levels).item()
         self.codebook = self.indexes_to_codes(torch.arange(self.codebook_size, device=device))
 
-    def forward(self, z, beta=1): # beta in (0,1). beta->0 => values more spread out
+    def forward(self, z, beta=1.0): # beta in (0,1). beta->0 => values more spread out
         offset = (self.levels+1) % 2 /2 # .5 if even, 0 if odd
-        bound = (F.sigmoid(z)-1/2) * (self.levels-beta) + offset
+        # bound = (F.sigmoid(2*z)-1/2) * (self.levels-beta) + offset
+        bound = (F.tanh(z)/2) * (self.levels-beta) + offset
         quantized = ste_round(bound)
         return (quantized-offset) / self.half_width # split [-1,1]
 
     def codes_to_indexes(self, zhat):
         zhat = (zhat + 1) * self.half_width
-        return (zhat * self.basis).sum(axis=-1).round()
+        return (zhat * self.basis).sum(axis=-1).round().int()
 
     def indexes_to_codes(self, indices):
         indices = indices.unsqueeze(-1)
         codes = torch.remainder(indices//self.basis, self.levels)
         return codes / self.half_width - 1
 
-# fsq = FSQ(levels = [5,4,3,2])
-# # print(fsq.codebook)
-# batch_size, seq_len = 2, 4
-# # x = torch.rand((batch_size, seq_len,3),device=device)
-# x = torch.linspace(-2,2,7).repeat(4,1).T
-# la = fsq(x)
-# print(la)
-# lact = fsq.codes_to_indexes(la)
-# print(lact)
-# # la = fsq.indexes_to_codes(lact)
-# print(la)
+fsq = FSQ(levels = [128,4,3,2])
+# print(fsq.codebook)
+batch_size, seq_len = 2, 4
+# x = torch.linspace(-5,5,17).repeat(4,1).T # sig need larger variance to reach +-1
+x = torch.linspace(-3,3,17).repeat(4,1).T
+# x=la
+la = fsq(x)
+print(la)
+lact = fsq.codes_to_indexes(la)
+print(lact)
+la = fsq.indexes_to_codes(lact)
+print(la)
