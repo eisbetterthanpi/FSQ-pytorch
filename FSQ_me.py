@@ -13,7 +13,9 @@ class FSQ(nn.Module):
         self.basis = torch.cumprod(torch.tensor([*levels[1:], 1], device=device).flip(-1), dim=0).flip(-1)
         self.half_width = (self.levels-1)/2
         self.codebook_size = torch.prod(self.levels).item()
-        self.codebook = self.indexes_to_codes(torch.arange(self.codebook_size, device=device))
+        # self.codebook = self.indexes_to_codes(torch.arange(self.codebook_size, device=device))
+    @property
+    def codebook(self): return self.indexes_to_codes(torch.arange(self.codebook_size, device=device))
 
     def forward(self, z, beta=1.0): # beta in (0,1). beta->0 => values more spread out
         offset = (self.levels+1) % 2 /2 # .5 if even, 0 if odd
